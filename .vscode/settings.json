@@ -1,0 +1,10 @@
+{
+  "python.linting.enabled": true,
+  "editor.formatOnSave": true,
+  "python.formatting.provider": "yapf", // or "black" here
+  "python.linting.pylintEnabled": false,
+  "python.linting.mypyEnabled": true,
+  "python.formatting.yapfArgs": [
+    "--style={based_on_style: google, indent_width: 4, column_limit: 88, blank_line_before_nested_class_or_def: true, dedent_closing_brackets: true, coalesce_brackets: false, spaces_before_comment: 4, split_before_logical_operator: true, allow_multiline_dictionary_keys: false, allow_split_before_dict_value: false}"
+  ]
+}
