@@ -1,5 +1,5 @@
 import typing
-
+import warnings
 from pydantic import root_validator, Field
 
 from langchain.schema import BaseMessage, ChatResult, HumanMessage, AIMessage, ChatGeneration
@@ -19,7 +19,25 @@ class ChatGLM(BaseChatModel):
     tokenizer: typing.Any    #: :meta private:
 
     @root_validator()
-    def validate_environment(cls, values: typing.Dict) -> typing.Dict:
+    def raise_deprecation(cls, values: typing.Dict) -> typing.Dict:
+        # model path
+        # default_model_name = "THUDM/chatglm-6b-int8"
+        # model_path_or_name: typing.Optional[str] = values.get("model_path_or_name")
+        # if not model_path_or_name:
+        #     model_path_or_name = default_model_name
+        #     warnings.warn(
+        #         f"model_path_or_name using default value: {default_model_name}"
+        #     )
+        # trust_remote = values.get("trust_remote_code", True)
+        # tokenizer = AutoTokenizer.from_pretrained(
+        #     model_path_or_name, trust_remote_code=trust_remote
+        # )
+        # model = AutoModel.from_pretrained(
+        #     model_path_or_name, trust_remote_code=trust_remote
+        # ).half().cuda()
+        # model.eval()
+        # values["model"] = model
+        # values["tokenizer"] = tokenizer
         return values
 
     @property
