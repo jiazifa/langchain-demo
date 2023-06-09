@@ -1,6 +1,6 @@
 import typing
 import warnings
-from pydantic import root_validator, Field
+from pydantic import root_validator, Field, PrivateAttr
 
 from langchain.schema import BaseMessage, ChatResult, HumanMessage, AIMessage, ChatGeneration
 from transformers import AutoModel, AutoTokenizer
@@ -14,30 +14,21 @@ class ChatGLM(BaseChatModel):
     streaming: bool = False
     max_token: typing.Optional[int] = None
     temperature: float = 0.2
-    model_name: str = Field(default="THUDM/chatglm-6b-int8", alias="model")
-    client: typing.Any    #: :meta private:
-    tokenizer: typing.Any    #: :meta private:
+    model_name: str = Field(default="THUDM/chatglm-6b-int8")
+    client: AutoTokenizer = PrivateAttr()    #: :meta private:
+    tokenizer: AutoModel = PrivateAttr()    #: :meta private:
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        model = self.model_name
+        tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        client = AutoModel.from_pretrained(model, trust_remote_code=True).half().cuda()
+        client.eval()
+        self.tokenizer = tokenizer
+        self.client = client
 
     @root_validator()
     def raise_deprecation(cls, values: typing.Dict) -> typing.Dict:
-        # model path
-        # default_model_name = "THUDM/chatglm-6b-int8"
-        # model_path_or_name: typing.Optional[str] = values.get("model_path_or_name")
-        # if not model_path_or_name:
-        #     model_path_or_name = default_model_name
-        #     warnings.warn(
-        #         f"model_path_or_name using default value: {default_model_name}"
-        #     )
-        # trust_remote = values.get("trust_remote_code", True)
-        # tokenizer = AutoTokenizer.from_pretrained(
-        #     model_path_or_name, trust_remote_code=trust_remote
-        # )
-        # model = AutoModel.from_pretrained(
-        #     model_path_or_name, trust_remote_code=trust_remote
-        # ).half().cuda()
-        # model.eval()
-        # values["model"] = model
-        # values["tokenizer"] = tokenizer
         return values
 
     @property
