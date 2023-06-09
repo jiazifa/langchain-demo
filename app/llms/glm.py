@@ -14,6 +14,9 @@ class GLM(LLM, ABC):
     model: typing.Any = None    # type: ignore
     tokenizer: typing.Optional[AutoTokenizer] = None
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @root_validator()
     def validate_environment(cls, values: typing.Dict) -> typing.Dict:
         # model path
