@@ -1,5 +1,4 @@
 import typing
-import warnings
 from pydantic import root_validator, Field, PrivateAttr
 
 from langchain.schema import BaseMessage, ChatResult, HumanMessage, AIMessage, ChatGeneration

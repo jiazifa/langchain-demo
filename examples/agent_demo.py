@@ -1,3 +1,5 @@
+import os
+import typing
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.agents import load_tools
@@ -67,7 +69,8 @@ def demo_custom_tool():
 
 def demo_retriever_tool():
     from langchain.agents import create_csv_agent
-    from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
+    from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser, create_vectorstore_agent
+    from langchain.agents.agent_toolkits import VectorStoreToolkit, VectorStoreInfo
     from langchain.prompts import StringPromptTemplate
     from langchain import OpenAI, SerpAPIWrapper, LLMChain
     from typing import List, Union
@@ -82,17 +85,47 @@ def demo_retriever_tool():
         description="useful for when you need to answer questions about current events"
     )
 
+    def on_csv_agent_task(path: str, query: str) -> str:
+        agent: AgentExecutor = create_csv_agent(llm=llm, path=path)
+        return agent.run(query)
+
     csv_tool1 = Tool(
-        name="csv-person-information",
-        func=lambda x: "im ani, im 20 years old, im a student",
+        name="Billing Information",
+        func=lambda x: on_csv_agent_task("data/billing.csv", x),
         description=
-        "useful when you want to know about a person, like 'what is your name?' or 'how old are you?'"
+        "useful when you want to know about personal billing, like 'How much is the total expenditure?' or 'How much did the catering cost?'",
     )
 
-    ALL_TOOLS = [search_tool] + [csv_tool1]
+    def on_self_infomation_tool(query: str) -> str:
+        documents: typing.List[Document] = []
+        for file in os.listdir("data"):
+            if file.endswith(".txt"):
+                with open(os.path.join("data", file), "r") as f:
+                    documents.append(
+                        Document(page_content=f.read(), metadata={"name": file})
+                    )
+        print(f"documents: {documents}")
+        db = Chroma.from_documents(documents, embedding=default_embedding)
+        vectorstore_info = VectorStoreInfo(
+            name="state_of_union_address",
+            description="the most recent state of the Union adress",
+            vectorstore=db
+        )
+        return db.similarity_search(query, k=1)[0].page_content
+
+    self_infomation_tool = Tool(
+        name="Self Information Query",
+        func=lambda x: on_self_infomation_tool(x),
+        description=
+        "useful when you want to know about personal information, like 'What is my name?' or 'What is my address?'"
+    )
+
+    ALL_TOOLS = [search_tool] + [csv_tool1] + [self_infomation_tool]
     documents = [
-        Document(page_content=t.description, metadata={"index": t.name})
-        for _, t in enumerate(ALL_TOOLS)
+        Document(page_content=t.description, metadata={
+            "name": t.name,
+            "index": i
+        }) for i, t in enumerate(ALL_TOOLS)
     ]
     model_name = "sentence-transformers/all-mpnet-base-v2"
     model_kwargs = {'device': 'cpu'}
@@ -102,8 +135,12 @@ def demo_retriever_tool():
     )
     store = Chroma.from_documents(documents, embedding=default_embedding)
     retriever = store.as_retriever()
-    docs = retriever.get_relevant_documents("whats your name")
-    d = []
+    docs = retriever.get_relevant_documents("whats my name")
+    docs = docs[:1]
+    d = [ALL_TOOLS[d.metadata["index"]] for d in docs]
+    initialize_agent(
+        ALL_TOOLS, llm=llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True
+    ).run("who am i?")
 
 
 if __name__ == "__main__":
